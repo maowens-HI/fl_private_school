@@ -126,6 +126,9 @@ foreach exp in total_school non_relig relig distinct_fine distinct_collapsed {
 *** Section 5: Multivariate Regression
 *** ---------------------------------------------------------------------------
 
+* Run one multivariate regression as an example of controlling for confounders
+* This shows how results might differ when accounting for multiple factors
+* simultaneously
 
 
 
