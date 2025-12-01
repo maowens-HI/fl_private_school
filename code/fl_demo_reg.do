@@ -1,271 +1,239 @@
+/*==============================================================================
+Project    : Florida Private School Exposure Analysis
+File       : fl_demo_reg.do
+Purpose    : Construct PUMA-level demographic measures from IPUMS microdata
+Author     : Myles Owens
+Institution: Hoover Institution, Stanford University
+Date       : 2025-12-01
+───────────────────────────────────────────────────────────────────────────────
+Description:
+    This script builds year 2000 PUMA-level demographic characteristics from
+    IPUMS USA Census microdata for Florida. It constructs both person-level
+    measures (race, ethnicity, education, age) and household-level measures
+    (income), properly weighting each by their respective sampling weights.
 
-*House Keeping
-clear 
+Inputs:
+    - fl_demo.dta                 IPUMS USA microdata (includes 2000 Florida)
+
+Outputs:
+    - fl_puma2000_analysis.dta    PUMA-level demographic characteristics
+
+Key Variables Created:
+    - avg_income      Average household income (household-weighted)
+    - black_share     Percent Black population (person-weighted)
+    - white_share     Percent White population (person-weighted)
+    - other_share     Percent Other race population (person-weighted)
+    - hisp_share      Percent Hispanic population (person-weighted)
+    - less_hs         Percent with less than high school (person-weighted)
+    - hs_grad         Percent with high school diploma (person-weighted)
+    - some_college    Percent with some college (person-weighted)
+    - college_plus    Percent with college degree or higher (person-weighted)
+    - avg_age         Average age (person-weighted)
+
+Notes:
+    - Uses year 2000 Census 5% sample (sample == 200001)
+    - Florida only (statefip == 12)
+    - Household income uses ONE record per household (serial) with hhwt weights
+    - Person characteristics use person-level data with perwt weights
+    - All share variables expressed as percentages (0-100 scale)
+    - Bad income codes (< 0 or 9999999) are dropped
+==============================================================================*/
+
+clear all
 set more off
 
+*** ---------------------------------------------------------------------------
+*** Section 1: Load IPUMS Data and Apply Filters
+*** ---------------------------------------------------------------------------
+
 cd "$florida\data"
-use fl_demo.dta
+use fl_demo.dta, clear
 
+* Filter to Florida, year 2000, 5% sample only
+keep if statefip == 12        // Florida FIPS code
+keep if year == 2000          // Census 2000
+keep if sample == 200001      // 2000 5% sample
 
-*Florida Only
-keep if statefip==12
-keep if year == 2000 
-keep if sample == 200001
-
+* Save filtered base file for merging demographic measures
 tempfile merger
 save `merger'
-*save fl_demo_clean_2000, replace
 
-/*
-*Collapse into PUMA level measures use fl_demo_clean_2000 
-* Turn HHINCOME (SUM) into and average 
-preserve 
-drop duplicates gen hh_income_wt = hhincome 
-* hhwt 
-collapse (sum) hh_income_wt (sum) hhwt, by(puma) gen avg_income = hh_income_wt / hhwt label variable avg_income "Average household income (weighted, 2000 PUMA)" tempfile puma_income save puma_income' 
-restore
-use 'puma_income' 
-merge 1:m puma using fl_demo_clean_2000 
-drop _merge 
-save fl_demo_clean_2000, replace
-*/
-*Collapse into PUMA level measures: correct household income construction
+*** ---------------------------------------------------------------------------
+*** Section 2: Household Income (Household-Weighted)
+*** ---------------------------------------------------------------------------
+
+* Household income must be computed at the HOUSEHOLD level using hhwt,
+* not person level. We keep one record per household (identified by serial).
+
 use `merger', clear
 
 preserve
+    * Keep only household-level variables
+    keep year sample statefip serial gq puma hhincome hhwt
 
-* One record per household
-keep year sample statefip serial gq puma hhincome hhwt
-duplicates drop serial, force
-drop if hhincome < 0 | hhincome == 9999999   // strip bad codes
-* Weighted mean household income by PUMA
-collapse (mean) avg_income = hhincome [pw=hhwt], by(puma)
+    * One record per household (serial = unique household ID within year/sample)
+    duplicates drop serial, force
+
+    * Drop invalid income codes
+    drop if hhincome < 0 | hhincome == 9999999
+
+    * Compute weighted mean household income by PUMA
+    collapse (mean) avg_income = hhincome [pw=hhwt], by(puma)
 
     label variable avg_income "Average household income (HH-weighted, 2000 PUMA)"
+
     tempfile puma_income
     save `puma_income'
 restore
 
-* Merge back to person-level file
+* Merge household income back to person-level base file
 use `puma_income', clear
 merge 1:m puma using `merger'
 drop _merge
 save `merger', replace
 
+*** ---------------------------------------------------------------------------
+*** Section 3: Race Shares (Person-Weighted)
+*** ---------------------------------------------------------------------------
 
-* race shares (percent Black, white, other)
+* Compute percentage of population by race category within each PUMA
+* Uses person weights (perwt) since this is a person-level characteristic
 
-preserve 
-*weighted counts by race
-gen pop_race=perwt
-collapse (sum) pop_race, by(puma race)
-bysort puma: egen total_puma = total(pop_race)
+preserve
+    * Sum person weights by race within each PUMA
+    gen pop_race = perwt
+    collapse (sum) pop_race, by(puma race)
 
-gen black_share =  100 * pop_race/ total_puma if race==2
-gen white_share =  100 * pop_race/ total_puma if race==1
-gen other_share =  100 * pop_race/ total_puma if race > 2
+    * Calculate total population in each PUMA (sum across all races)
+    bysort puma: egen total_puma = total(pop_race)
 
-collapse (max) black_share white_share other_share, by(puma)
+    * Compute race shares as percentages
+    gen black_share = 100 * pop_race / total_puma if race == 2
+    gen white_share = 100 * pop_race / total_puma if race == 1
+    gen other_share = 100 * pop_race / total_puma if race > 2
 
-tempfile race_share
-save `race_share'
+    * Collapse to one observation per PUMA (keeping the non-missing shares)
+    collapse (max) black_share white_share other_share, by(puma)
+
+    tempfile race_share
+    save `race_share'
 restore
 
-use `race_share'
+* Merge race shares back to base file
+use `race_share', clear
 merge 1:m puma using `merger'
 drop _merge
 save `merger', replace
 
+*** ---------------------------------------------------------------------------
+*** Section 4: Hispanic Share (Person-Weighted)
+*** ---------------------------------------------------------------------------
 
-*Hispanic
+* Compute percentage Hispanic within each PUMA
+* Hispanic ethnicity is separate from race in Census classification
+
 preserve
-gen pop_hisp = perwt
-collapse (sum) pop_hisp, by (puma hispan)
-bysort puma: egen total_puma = total(pop_hisp)
-gen hisp_share = 100 * pop_hisp/ total_puma if hispan != 0
-collapse (max) hisp_share, by(puma)
-tempfile hisp_share
-save `hisp_share'
+    gen pop_hisp = perwt
+    collapse (sum) pop_hisp, by(puma hispan)
+
+    * Calculate total population in each PUMA
+    bysort puma: egen total_puma = total(pop_hisp)
+
+    * Compute Hispanic share (hispan != 0 indicates Hispanic origin)
+    gen hisp_share = 100 * pop_hisp / total_puma if hispan != 0
+
+    * Collapse to one observation per PUMA
+    collapse (max) hisp_share, by(puma)
+
+    tempfile hisp_share
+    save `hisp_share'
 restore
+
+* Merge Hispanic share back to base file
 clear
-use `hisp_share'
+use `hisp_share', clear
 merge 1:m puma using `merger'
 drop _merge
 save `merger', replace
 
+*** ---------------------------------------------------------------------------
+*** Section 5: Educational Attainment (Person-Weighted)
+*** ---------------------------------------------------------------------------
 
-* Educational attainment
+* Create educational attainment categories based on IPUMS educ codes:
+* 0-5: Less than high school
+* 6: High school graduate
+* 7-9: Some college (including Associate's degree)
+* 10-11: Bachelor's degree or higher
+
 preserve
-gen less_hs      = inrange(educ,0,5)
-gen hs_grad      = educ==6
-gen some_college = inrange(educ,7,9)
-gen college_plus = inrange(educ,10,11)
-
-collapse (mean) less_hs hs_grad some_college college_plus [pw=perwt], by(puma)
-
-label var less_hs      "% Less than HS"
-label var hs_grad      "% HS graduate"
-label var some_college "% Some college"
-label var college_plus "% College or higher"
-
-tempfile educ_share
-save `educ_share'
-restore
-
-clear
-use `educ_share'
-
-merge 1:m puma using `merger'
-drop _merge
-save `merger', replace
-
-* Turn Age into and average age
-preserve
-collapse (mean) avg_age=age [pw=perwt], by(puma)
-label var avg_age "Average age (weighted, 2000 PUMA)"
-tempfile avg_age
-save `avg_age'
-restore
-
-clear
-use `avg_age'
-merge 1:m puma using `merger'
-drop _merge
-save `merger', replace
-keep puma avg_age less_hs hs_grad some_college college_plus hisp_share black_share white_share other_share avg_income year sample 
-gen str  puma5 = string(puma, "%05.0f")
-duplicates drop puma5, force
-save fl_puma2000_analysis.dta, replace
-
-/*
-/********************************************************************
-*  Project   : Florida Private School Concentration
-*  File      : fl_puma_analysis.do
-*  Purpose   : Build 2000 PUMA-level characteristics and join to schools
-*  Data In   : fl_demo.dta (IPUMS microdata, includes 2000 FL)
-*  Data Out  : fl_puma2000_analysis.dta
-*  Author    : Myles Owens
-********************************************************************/
-
-clear all
-set more off
-
-cd "$florida/data"
-
-*** ------------------------------------------------------------------
-*** 0) Load and filter once
-*** ------------------------------------------------------------------
-use fl_demo.dta, clear
-keep if statefip == 12
-keep if year == 2000
-keep if sample == 200001
-
-*** Keep only what we actually need downstream (lighter memory, faster)
-keep puma perwt race hispan educ age hhincome hhwt serial year sample
-
-*** ------------------------------------------------------------------
-*** 1) Person-level PUMA stats in a single collapse
-***    Shares are means of indicator vars with person weights.
-*** ------------------------------------------------------------------
-tempfile puma_person
-preserve
-    *** Race shares (Black/White/Other), Hispanic share, education shares, avg age
-    gen is_black  = race == 2
-    gen is_white  = race == 1
-    gen is_other  = race >  2
-    gen is_hisp   = hispan != 0
-
-    gen less_hs      = inrange(educ,0,5)
+    * Create indicator variables for each education category
+    gen less_hs      = inrange(educ, 0, 5)
     gen hs_grad      = educ == 6
-    gen some_college = inrange(educ,7,9)
-    gen college_plus = inrange(educ,10,11)
+    gen some_college = inrange(educ, 7, 9)
+    gen college_plus = inrange(educ, 10, 11)
 
-    collapse ///
-        (mean) black_share = is_black ///
-                white_share = is_white ///
-                other_share = is_other ///
-                hisp_share  = is_hisp  ///
-                less_hs hs_grad some_college college_plus ///
-                avg_age = age [pw=perwt], by(puma)
+    * Compute weighted mean shares by PUMA (automatically gives percentages as 0-1)
+    collapse (mean) less_hs hs_grad some_college college_plus [pw=perwt], by(puma)
 
-    *** Convert shares to percents if you insist on percent formatting
-    foreach v in black_share white_share other_share hisp_share ///
-                less_hs hs_grad some_college college_plus {
-        replace `v' = 100*`v'
-    }
+    * Convert to percentages (0-100 scale) - currently done in final step below
+    * Note: These are already weighted means, so they represent population shares
 
-    label var black_share   "% Black (person-weighted)"
-    label var white_share   "% White (person-weighted)"
-    label var other_share   "% Other race (person-weighted)"
-    label var hisp_share    "% Hispanic (person-weighted)"
-    label var less_hs       "% Less than HS (person-weighted)"
-    label var hs_grad       "% HS graduate (person-weighted)"
-    label var some_college  "% Some college (person-weighted)"
-    label var college_plus  "% College+ (person-weighted)"
-    label var avg_age       "Average age (person-weighted)"
+    label var less_hs      "% Less than HS"
+    label var hs_grad      "% HS graduate"
+    label var some_college "% Some college"
+    label var college_plus "% College or higher"
 
-    *** year/sample are constants; stamp them explicitly
-    gen year   = 2000
-    gen sample = 200001
-
-    save `puma_person'
+    tempfile educ_share
+    save `educ_share'
 restore
 
-*** ------------------------------------------------------------------
-*** 2) Household income: compute at household level with HHWT, then PUMA
-***    We don't average people's copies of household income. We average households.
-*** ------------------------------------------------------------------
-tempfile puma_hhinc
+* Merge education shares back to base file
+clear
+use `educ_share', clear
+merge 1:m puma using `merger'
+drop _merge
+save `merger', replace
+
+*** ---------------------------------------------------------------------------
+*** Section 6: Average Age (Person-Weighted)
+*** ---------------------------------------------------------------------------
+
+* Compute mean age within each PUMA using person weights
+
 preserve
-    keep puma hhincome hhwt serial
-    keep if !missing(hhincome, hhwt, serial, puma)
+    collapse (mean) avg_age = age [pw=perwt], by(puma)
 
-    *** One obs per household (SERIAL identifies the household within year/sample)
-    bys serial: keep if _n == 1
+    label var avg_age "Average age (weighted, 2000 PUMA)"
 
-    gen hh_income_wt = hhincome * hhwt
-    collapse (sum) hh_income_wt hhwt, by(puma)
-    gen avg_income = hh_income_wt / hhwt
-    label var avg_income "Average household income (HH-weighted, 2000 PUMA)"
-
-    keep puma avg_income
-    save `puma_hhinc'
+    tempfile avg_age
+    save `avg_age'
 restore
 
-*** ------------------------------------------------------------------
-*** 3) Merge the tidy pieces and write once
-*** ------------------------------------------------------------------
-use `puma_person', clear
-merge 1:1 puma using `puma_hhinc', nogenerate
+* Merge average age back to base file
+clear
+use `avg_age', clear
+merge 1:m puma using `merger'
+drop _merge
+save `merger', replace
 
-order puma year sample avg_income avg_age ///
-      black_share white_share other_share hisp_share ///
-      less_hs hs_grad some_college college_plus
+*** ---------------------------------------------------------------------------
+*** Section 7: Final Cleanup and Export
+*** ---------------------------------------------------------------------------
 
-gen str  puma5 = string(puma, "%05.0f")
+* Keep only the PUMA-level summary variables (one record per PUMA)
+keep puma avg_age less_hs hs_grad some_college college_plus ///
+     hisp_share black_share white_share other_share avg_income year sample
+
+* Create 5-character string version of PUMA for merging with geographic data
+gen str puma5 = string(puma, "%05.0f")
+
+* Remove duplicate PUMA records (we now have PUMA-level summaries only)
+duplicates drop puma5, force
+
+* Save final PUMA-level demographic dataset
 save fl_puma2000_analysis.dta, replace
-*/
 
-
-
-
-
-
-
-
-
-
-/********************************************************************
-*  Project   : Florida Private School Concentration
-*  File      : fl_puma_analysis.do
-*  Purpose   : Construct regional characteristics (2000, PUMA-level)
-*              and regress them on private school exposure.
-*
-*  Data In   : ipums_2000_florida.dta   (IPUMS microdata, 2000 5% sample)
-*              schools_puma2000.dta     (aggregated private school counts)
-*
-*  Data Out  : fl_puma2000_analysis.dta (PUMA-level characteristics + schools)
-*
-*  Author    : Myles Owens
-********************************************************************/
-
+*** ---------------------------------------------------------------------------
+*** End of Script
+*** ---------------------------------------------------------------------------
