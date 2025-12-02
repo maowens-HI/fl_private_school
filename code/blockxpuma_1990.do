@@ -65,6 +65,10 @@ import delimited using "geocorr1990.csv", clear varnames(1)
 drop in 1  // Drop first data row if it contains formatting info
 
 * Convert county and block to numeric; keep tract as STRING (contains decimals)
+rename pumacodefrom19905asample puma_raw
+gen str5 puma5 = string(puma_raw, "%05.0f")
+rename censusblock block
+gen str tract = string(censustractbna, "%20.2f")
 destring county block, replace force
 
 * Parse tract into whole and fractional parts

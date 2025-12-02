@@ -117,7 +117,7 @@ foreach exp in total_school non_relig relig distinct_fine distinct_collapsed {
     * ar2: Include adjusted R-squared
     * label: Use variable labels in output
     * style(tex): Format for LaTeX
-    esttab using "$florida/output/charts/reg_`exp'.tex", replace ///
+    esttab using "$florida/output/reg_`exp'.tex", replace ///
         se r2 ar2 label style(tex) ///
         title("Regression Results using `exp'")
 }
