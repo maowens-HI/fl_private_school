@@ -64,12 +64,19 @@ cd "$florida/data"
 import delimited using "geocorr1990.csv", clear varnames(1)
 drop in 1  // Drop first data row if it contains formatting info
 
+* FILTER TO FLORIDA ONLY (state FIPS = 12)
+* Florida counties range from 12001 to 12139
+keep if county >= 12001 & county <= 12999
+
 * Convert county and block to numeric; keep tract as STRING (contains decimals)
 rename pumacodefrom19905asample puma_raw
 gen str5 puma5 = string(puma_raw, "%05.0f")
 rename censusblock block
 gen str tract = string(censustractbna, "%20.2f")
 destring county block, replace force
+
+* Drop observations with missing blocks (data quality issue)
+drop if missing(block)
 
 * Parse tract into whole and fractional parts
 * Some tracts are like "9841.01" (need to split), others are "9841" (no decimal)
