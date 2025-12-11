@@ -2,14 +2,14 @@
 
 ## Project Overview
 
-This repository analyzes the relationship between Florida community demographics and access to private schools using year 2000 Census data. The analysis constructs PUMA-level demographic measures from IPUMS microdata and merges them with private school exposure metrics aggregated from block-level geographic data.
+This repository analyzes the relationship between Florida community demographics and access to private schools using Census data from 1990 and 2000. The analysis constructs block-level private school exposure measures from geocoded school locations, aggregates them to PUMA geography, and merges them with PUMA-level demographic measures from IPUMS microdata. The project includes both statistical analysis and spatial visualization capabilities.
 
 **Author:** Myles Owens
 **Institution:** Hoover Institution, Stanford University
 **Email:** myles.owens@stanford.edu
 **Language:** Stata (all .do files)
-**Data Period:** Year 2000 (cross-sectional analysis)
-**Geographic Unit:** PUMA (Public Use Microdata Area)
+**Data Periods:** 1990 and 2000 (cross-sectional analyses)
+**Geographic Units:** Census Block (for school exposure construction); PUMA (for analysis)
 
 ## Research Question
 
@@ -17,33 +17,57 @@ What is the relationship between community demographic characteristics (income, 
 
 ## Core Methodology
 
-- **Approach:** Cross-sectional analysis using year 2000 data
-- **Geographic Unit:** PUMA - Census geographic areas containing at least 100,000 people
-- **Distance Buffer:** 5-mile radius (school counts within 5 miles of each block, aggregated to PUMA level)
-- **Analysis:** Bivariate regressions examining correlations between demographics and school exposure
-- **Key Challenge:** Linking Census microdata (PUMA geography) with school location data (block geography) via geographic crosswalk
+- **Approach:** Cross-sectional analyses for 1990 and 2000 separately
+- **Geographic Units:**
+  - Block-level: School exposure calculation using geocoded coordinates
+  - PUMA-level: Census geographic areas containing at least 100,000 people (analysis unit)
+- **Distance Buffers:** 1-10 mile radii (primary analysis uses 5-mile buffer)
+- **School Levels:** Elementary, middle, and high school analyzed separately
+- **Analysis Types:**
+  - Statistical: Bivariate and multivariate regressions
+  - Spatial: Choropleth maps with k-means classification
+- **Key Challenges:**
+  - Linking Census microdata (PUMA geography) with school location data (block geography)
+  - Computing distance-based school exposure at block level
+  - Handling different PUMA boundaries between 1990 and 2000
 
 ## Repository Structure
 
 ```
 fl_private_school/
-├── README.md                       # Project documentation
-├── CLAUDE.md                       # This file - AI assistant guide
-├── code/                           # All Stata scripts
-│   ├── fl_demo_reg.do              # Build PUMA-level demographics from IPUMS
-│   ├── blockxpuma.do               # Link block-level schools to PUMAs
-│   └── puma_school_analysis.do    # Cross-sectional regression analysis
-└── data/                           # Data directory (files not in repo)
-    ├── fl_demo.dta                 # [External] IPUMS microdata
-    ├── geocorr2000_pxb2.csv        # [External] PUMA × Block crosswalk
-    ├── block_school_counts_all.dta # [Generated] Combined school counts
-    ├── fl_puma2000_analysis.dta    # [Generated] PUMA demographics
-    ├── blockxpuma_clean.dta        # [Generated] Cleaned crosswalk
-    ├── pumaxblock_school_all.dta   # [Generated] PUMA-level school counts
-    └── school_count_final.dta      # [Generated] Final analysis dataset
+├── README.md                          # Project documentation
+├── CLAUDE.md                          # This file - AI assistant guide
+├── run.do                             # Master script to run entire workflow
+├── code/                              # All Stata scripts
+│   ├── school_counts.do               # Build block-level school counts
+│   ├── fl_demo_reg.do                 # Build 2000 PUMA demographics
+│   ├── fl_demo_reg_1990.do            # Build 1990 PUMA demographics
+│   ├── blockxpuma.do                  # Link 2000 block-level schools to PUMAs
+│   ├── blockxpuma_1990.do             # Link 1990 block-level schools to PUMAs
+│   ├── puma_school_analysis.do        # 2000 cross-sectional regression analysis
+│   ├── puma_school_analysis_1990.do   # 1990 cross-sectional regression analysis
+│   └── maps.do                        # Spatial visualization
+└── data/                              # Data directory (files not in repo)
+    ├── fl_demo.dta                    # [External] IPUMS microdata (1990 + 2000)
+    ├── florida_privates_lat_lon.dta   # [External] Geocoded school locations
+    ├── fl_blocks2000_centroids.dta    # [External] Block centroids
+    ├── geocorr2000_pxb2.csv           # [External] 2000 PUMA × Block crosswalk
+    ├── geocorr1990.csv                # [External] 1990 PUMA × Block crosswalk
+    ├── block_school_counts_all_elem.dta   # [Generated] Elementary school counts
+    ├── block_school_counts_all_middle.dta # [Generated] Middle school counts
+    ├── block_school_counts_all_high.dta   # [Generated] High school counts
+    ├── block_school_counts_all.dta    # [Generated] Combined school counts
+    ├── fl_puma2000_analysis.dta       # [Generated] 2000 PUMA demographics
+    ├── fl_puma1990_analysis.dta       # [Generated] 1990 PUMA demographics
+    ├── blockxpuma_clean.dta           # [Generated] 2000 cleaned crosswalk
+    ├── blockxpuma_clean_1990.dta      # [Generated] 1990 cleaned crosswalk
+    ├── pumaxblock_school_all.dta      # [Generated] 2000 PUMA school counts
+    ├── pumaxblock_school_all_1990.dta # [Generated] 1990 PUMA school counts
+    ├── school_count_final.dta         # [Generated] 2000 final analysis dataset
+    └── school_count_final_1990.dta    # [Generated] 1990 final analysis dataset
 ```
 
-**Total Code:** ~320 lines across 3 Stata .do files
+**Total Code:** ~1,350 lines across 9 Stata .do files
 
 ## Understanding .DO Files
 
@@ -72,27 +96,67 @@ fl_private_school/
 
 ## Data Flow Pipeline
 
-### Phase I: PUMA Demographics Construction
+**Note:** The pipeline runs separately for 1990 and 2000 data, with parallel processing workflows.
+
+### Phase 0: School Count Data Construction
+
+```
+Census Block Centroids           Private School Locations
+(fl_blocks2000_centroids.dta)   (florida_privates_lat_lon.dta)
+        │                                  │
+        │                                  ├──> Filter by school level
+        │                                  │    (elem, middle, high)
+        │                                  │
+        │                                  ├──> Encode school types
+        │                                  │    • Fine-grained classification
+        │                                  │    • Collapsed (10 categories)
+        │                                  │
+        v                                  v
+    school_counts.do
+        │
+        ├──> For each distance buffer (1-10 miles):
+        │    • Use geonear to find schools within radius
+        │    • Count total, religious, non-religious schools
+        │    • Calculate type diversity (fine & collapsed)
+        │    • Aggregate by block × distance × school level
+        │
+        v
+    block_school_counts_all_[elem/middle/high].dta
+        │
+        └──> Combine all levels
+             │
+             v
+        block_school_counts_all.dta
+```
+
+**Key Operations:**
+
+1. **Geographic Distance Calculation:** Use `geonear` package to identify schools within 1-10 mile buffers of each block centroid
+2. **School Type Classification:**
+   - Fine-grained: Original detailed categories
+   - Collapsed: 10 categories (Non-religious, Evangelical, Catholic, Baptist, Mainline Protestant, Adventist, Jewish, Muslim, Other Christian, Other Religion)
+3. **Diversity Metrics:** Count distinct school types present within each block's buffer
+4. **Output Structure:** Block × Distance × School Level panel
+
+### Phase I: PUMA Demographics Construction (1990 & 2000)
 
 ```
 Raw IPUMS Microdata (fl_demo.dta)
         │
-        v
-    fl_demo_reg.do
-        │
-        ├──> Filter: Florida only (statefip==12)
-        ├──> Filter: Year 2000, 5% sample (sample==200001)
-        │
-        ├──> Household-level: Average household income (weighted by hhwt)
-        │
-        ├──> Person-level:
-        │    • Race shares (black_share, white_share, other_share)
-        │    • Hispanic share (hisp_share)
-        │    • Education distribution (less_hs, hs_grad, some_college, college_plus)
-        │    • Average age (avg_age)
-        │
-        v
-    fl_puma2000_analysis.dta
+        ├──────────────────────┬──────────────────────┐
+        │ (1990)               │                      │ (2000)
+        v                      v                      v
+    fl_demo_reg_1990.do    [Filters]        fl_demo_reg.do
+        │                      │                      │
+        │  • Filter: Florida (statefip==12)          │
+        │  • Filter: Year & 5% sample                │
+        │                      │                      │
+        │  • Household: avg_income (hhwt)            │
+        │  • Person: race, ethnicity, education,     │
+        │           age (perwt)                       │
+        │                      │                      │
+        v                      v                      v
+    fl_puma1990_analysis.dta          fl_puma2000_analysis.dta
 ```
 
 **Key Operations:**
@@ -101,24 +165,33 @@ Raw IPUMS Microdata (fl_demo.dta)
 2. **Person Characteristics:** Collapse person-level data using person weights (`perwt`)
 3. **Race/Ethnicity:** Create indicator variables, compute weighted shares as percentages
 4. **Education:** Use IPUMS `educ` codes to create attainment categories
+5. **PUMA Identifier:** Create standardized 5-character string version (`puma5`)
 
-### Phase II: School-PUMA Linkage
+### Phase II: School-PUMA Linkage (1990 & 2000)
 
 ```
-Block-Level School Data                  PUMA × Block Crosswalk
-(block_school_counts_all.dta)           (geocorr2000_pxb2.csv)
-        │                                        │
-        v                                        v
-    blockxpuma.do
-        │
-        ├──> Parse crosswalk: county + tract + block → baseid (15-char ID)
-        │
-        ├──> Merge school counts to crosswalk on baseid
-        │
-        ├──> Collapse to PUMA level: (mean) school counts by(puma5 distance)
-        │
-        v
-    pumaxblock_school_all.dta
+Block School Counts            PUMA × Block Crosswalk          PUMA Demographics
+(block_school_counts_all)      (geocorr1990/2000_pxb2.csv)    (fl_puma[1990/2000]_analysis)
+        │                                 │                           │
+        │                                 v                           │
+        │                      blockxpuma[_1990].do                   │
+        │                                 │                           │
+        │         ┌───────────────────────┼───────────────────────┐   │
+        │         │                       │                       │   │
+        │         v                       v                       v   │
+        │  1. Parse crosswalk    2. Merge school counts  3. Aggregate to PUMA
+        │     • county (5)              on baseid              by puma5 × distance
+        │     • tract (6)                                      (mean school counts)
+        │     • block (4)                                              │
+        │     → baseid (15)                                            v
+        │                                                  pumaxblock_school_all[_1990].dta
+        │                                                              │
+        └──────────────────────────────────────────────────────────────┤
+                                                                       │
+                                                        4. Merge demographics + schools
+                                                                       │
+                                                                       v
+                                                         school_count_final[_1990].dta
 ```
 
 **Key Operations:**
@@ -127,33 +200,72 @@ Block-Level School Data                  PUMA × Block Crosswalk
    - Split tract into whole and fractional parts (e.g., "9841.01" → "9841" + "01")
    - Pad components: `tract_whole4` (4 digits), `tract_frac2` (2 digits), `block4` (4 digits)
    - Construct `baseid` = county (5) + tract (6) + block (4) = 15 characters
+   - **Note:** 1990 and 2000 use different PUMA boundaries
 
 2. **Geographic Aggregation:**
-   - Multiple distance buffers stored in `distance` variable (analysis uses 5-mile)
+   - Multiple distance buffers (1-10 miles) stored in `distance` variable
    - School counts averaged across blocks within each PUMA
+   - Final structure: PUMA × Distance panel
 
-### Phase III: Merge and Analysis
+### Phase III: Statistical Analysis (1990 & 2000)
 
 ```
-fl_puma2000_analysis.dta     pumaxblock_school_all.dta
-        │                              │
-        └──────────┬───────────────────┘
-                   v
-            blockxpuma.do (merge)
-                   │
-                   v
-        school_count_final.dta
-                   │
-                   v
-        puma_school_analysis.do
-                   │
-                   ├──> Filter: distance == 5 miles
-                   ├──> Summary statistics for all variables
-                   ├──> Bivariate regressions: each demographic ~ each school measure
-                   └──> Export LaTeX tables
-                   │
-                   v
-            Output: reg_total_school.tex, reg_relig.tex, etc.
+school_count_final[_1990].dta
+        │
+        v
+    puma_school_analysis[_1990].do
+        │
+        ├──> Filter: distance == 5 miles (primary analysis)
+        │
+        ├──> Summary statistics for all variables
+        │
+        ├──> Bivariate regressions:
+        │    For each school exposure measure:
+        │      • avg_income ~ exposure
+        │      • black_share ~ exposure
+        │      • hisp_share ~ exposure
+        │      • education vars ~ exposure
+        │      • avg_age ~ exposure
+        │
+        ├──> Multivariate regression:
+        │    avg_income ~ total_school + demographics
+        │
+        └──> Export LaTeX tables (one per exposure measure)
+        │
+        v
+    Output:
+    • summary_stats[_1990].doc
+    • reg[_1990]_total_school.tex
+    • reg[_1990]_relig.tex
+    • reg[_1990]_non_relig.tex
+    • reg[_1990]_distinct_fine.tex
+    • reg[_1990]_distinct_collapsed.tex
+```
+
+### Phase IV: Spatial Visualization
+
+```
+block_school_counts_all_[elem/middle/high].dta
+        │
+        v
+    maps.do
+        │
+        ├──> For each school level:
+        │    For each exposure variable:
+        │    For each distance buffer (1-10 miles):
+        │      • Create choropleth map
+        │      • Use k-means clustering for bins
+        │      • Export as PNG
+        │
+        ├──> County-specific maps:
+        │    • Miami-Dade (12086)
+        │    • Broward (12011)
+        │    • Palm Beach (12099)
+        │
+        └──> Tri-county corridor visualization
+        │
+        v
+    Output: Maps saved to output/charts/
 ```
 
 ## Key Variables
@@ -582,28 +694,74 @@ summarize varlist, detail
 
 ## File Dependencies
 
-### Must Run in Order
+### Automated Execution
 
-**Phase I: Demographics**
-1. `fl_demo_reg.do` - Creates PUMA-level demographics from IPUMS microdata
-   - **Input:** `fl_demo.dta` (IPUMS raw data)
+**Master Script:** `run.do`
+- Sets global path (`$florida`)
+- Runs complete workflow in correct order
+- Logs execution time and outputs
+
+### Must Run in Order (if running manually)
+
+**Phase 0: School Count Data Construction**
+0. `school_counts.do` - Constructs block-level school exposure measures
+   - **Inputs:**
+     - `fl_blocks2000_centroids.dta` (block centroids with lat/lon)
+     - `florida_privates_lat_lon.dta` (geocoded schools)
+   - **Outputs:**
+     - `block_school_counts_all_elem.dta`
+     - `block_school_counts_all_middle.dta`
+     - `block_school_counts_all_high.dta`
+     - `block_school_counts_all.dta` (combined)
+   - **Requires:** `geonear` package, `spshape2dta` for spatial data
+
+**Phase I: Demographics (parallel for 1990 & 2000)**
+1a. `fl_demo_reg.do` - Year 2000 PUMA demographics
+   - **Input:** `fl_demo.dta` (IPUMS raw data, year==2000)
    - **Output:** `fl_puma2000_analysis.dta`
 
-**Phase II: School-PUMA Linkage**
-2. `blockxpuma.do` - Links block-level schools to PUMAs
+1b. `fl_demo_reg_1990.do` - Year 1990 PUMA demographics
+   - **Input:** `fl_demo.dta` (IPUMS raw data, year==1990)
+   - **Output:** `fl_puma1990_analysis.dta`
+
+**Phase II: School-PUMA Linkage (parallel for 1990 & 2000)**
+2a. `blockxpuma.do` - Year 2000 linkage
    - **Inputs:**
-     - `geocorr2000_pxb2.csv` (crosswalk)
-     - `block_school_counts_all.dta` (school counts)
-     - `fl_puma2000_analysis.dta` (from Phase I)
+     - `geocorr2000_pxb2.csv` (2000 crosswalk)
+     - `block_school_counts_all.dta` (from Phase 0)
+     - `fl_puma2000_analysis.dta` (from Phase Ia)
    - **Outputs:**
      - `blockxpuma_clean.dta` (cleaned crosswalk)
      - `pumaxblock_school_all.dta` (PUMA-level school counts)
      - `school_count_final.dta` (final merged dataset)
 
-**Phase III: Analysis**
-3. `puma_school_analysis.do` - Regression analysis
-   - **Input:** `school_count_final.dta` (from Phase II)
-   - **Outputs:** LaTeX tables (`reg_*.tex`)
+2b. `blockxpuma_1990.do` - Year 1990 linkage
+   - **Inputs:**
+     - `geocorr1990.csv` (1990 crosswalk)
+     - `block_school_counts_all.dta` (from Phase 0)
+     - `fl_puma1990_analysis.dta` (from Phase Ib)
+   - **Outputs:**
+     - `blockxpuma_clean_1990.dta`
+     - `pumaxblock_school_all_1990.dta`
+     - `school_count_final_1990.dta`
+
+**Phase III: Analysis (parallel for 1990 & 2000)**
+3a. `puma_school_analysis.do` - Year 2000 analysis
+   - **Input:** `school_count_final.dta` (from Phase IIa)
+   - **Outputs:** LaTeX tables (`reg_*.tex`, `summary_stats.doc`)
+
+3b. `puma_school_analysis_1990.do` - Year 1990 analysis
+   - **Input:** `school_count_final_1990.dta` (from Phase IIb)
+   - **Outputs:** LaTeX tables (`reg_1990_*.tex`, `summary_stats_1990.doc`)
+
+**Phase IV: Visualization (optional)**
+4. `maps.do` - Spatial visualization
+   - **Inputs:**
+     - `block_school_counts_all_elem.dta`
+     - `block_school_counts_all_middle.dta`
+     - `block_school_counts_all_high.dta`
+     - `flo_shp.dta` (spatial shapefile)
+   - **Outputs:** Choropleth maps (PNG files in output/charts/)
 
 ### External Dependencies
 
@@ -611,25 +769,32 @@ summarize varlist, detail
 
 - **IPUMS USA:** `fl_demo.dta`
   - Source: https://usa.ipums.org/usa/
-  - Extract: 2000 Census 5% sample, Florida only
+  - Extract: 1990 and 2000 Census 5% sample, Florida only
   - Variables needed: `statefip`, `puma`, `year`, `sample`, `perwt`, `hhwt`, `serial`, `race`, `hispan`, `educ`, `age`, `hhincome`
 
-- **Geographic Crosswalk:** `geocorr2000_pxb2.csv`
-  - Source: MCDC Geocorr 2000 (University of Missouri)
-  - URL: http://mcdc.missouri.edu/applications/geocorr2000.html
-  - Geographic units: PUMA × Block for Florida
+- **Private School Locations:** `florida_privates_lat_lon.dta`
+  - Geocoded private school locations with lat/lon coordinates
+  - Variables: `priv_g_lat`, `priv_g_lon`, `type`, `elem`, `middle`, `high`
 
-- **School Location Data:** Block-level school counts
-  - `block_school_counts_all_high.dta`
-  - `block_school_counts_all_middle.dta`
-  - `block_school_counts_all_elem.dta`
-  - (Or combined: `block_school_counts_all.dta`)
+- **Census Block Centroids:** `fl_blocks2000_centroids.dta`
+  - Block-level geographic coordinates
+  - Variables: `STFID` (baseid), `INTPTLAT00`, `INTPTLON00`, `_ID`
+  - Can be created from Census TIGER/Line shapefiles using `spshape2dta`
+
+- **Geographic Crosswalks:**
+  - `geocorr2000_pxb2.csv`: 2000 PUMA × Block crosswalk
+    - Source: MCDC Geocorr 2000 (http://mcdc.missouri.edu/applications/geocorr2000.html)
+  - `geocorr1990.csv`: 1990 PUMA × Block crosswalk
+    - Source: MCDC Geocorr 1990
 
 **Stata Packages:**
 
 Install using `ssc install`:
 - `outreg2` - Export regression and summary tables
 - `estout` / `esttab` - Export formatted regression tables
+- `geonear` - Calculate distances between geographic coordinates (for school_counts.do)
+- `spmap` - Create spatial maps (for maps.do)
+- `shp2dta` / `spshape2dta` - Convert shapefiles to Stata format (for creating block centroids)
 
 ```stata
 ssc install outreg2
@@ -842,10 +1007,17 @@ count if missing(tract_whole) | missing(tract_frac)
 
 | File | Purpose |
 |------|---------|
-| `fl_demo_reg.do` | **Build PUMA demographics** - Core data construction from IPUMS |
-| `blockxpuma.do` | **Link schools to PUMAs** - Geographic crosswalk and aggregation |
-| `puma_school_analysis.do` | **Run analysis** - Regressions and output tables |
-| `school_count_final.dta` | **Final dataset** - Merged demographics + school exposure |
+| `run.do` | **Master script** - Run entire workflow from raw data to final outputs |
+| `school_counts.do` | **Build school exposure** - Block-level school counts using geocoded locations |
+| `fl_demo_reg.do` | **Build 2000 PUMA demographics** - IPUMS microdata to PUMA aggregates |
+| `fl_demo_reg_1990.do` | **Build 1990 PUMA demographics** - IPUMS microdata to PUMA aggregates |
+| `blockxpuma.do` | **Link 2000 schools to PUMAs** - Geographic crosswalk and aggregation |
+| `blockxpuma_1990.do` | **Link 1990 schools to PUMAs** - Geographic crosswalk and aggregation |
+| `puma_school_analysis.do` | **Run 2000 analysis** - Regressions and output tables |
+| `puma_school_analysis_1990.do` | **Run 1990 analysis** - Regressions and output tables |
+| `maps.do` | **Visualize** - Choropleth maps of school exposure patterns |
+| `school_count_final.dta` | **Final 2000 dataset** - Merged demographics + school exposure |
+| `school_count_final_1990.dta` | **Final 1990 dataset** - Merged demographics + school exposure |
 
 ### Most Important Variables
 
@@ -924,24 +1096,50 @@ If using this analysis, cite:
 
 ## Current Limitations and Future Extensions
 
+**Implemented (as of 2025-12):**
+
+- ✓ **1990 data:** IPUMS microdata for 1990 Census processed
+- ✓ **Block-level school counts:** Geocoded school exposure measures using distance buffers
+- ✓ **School level breakdowns:** Elementary, middle, and high school analyzed separately
+- ✓ **School type classification:** Both fine-grained and collapsed (10-category) taxonomies
+- ✓ **Spatial visualization:** Choropleth maps with k-means clustering
+- ✓ **Multiple distance buffers:** 1-10 mile radii analyzed
+- ✓ **Multivariate specifications:** Initial multivariate regressions with demographic controls
+- ✓ **Master run script:** Automated workflow from raw data to final analysis
+
 **Not yet implemented:**
 
-- **1990 data:** IPUMS microdata for 1990 Census
-- **1990→2000 crosswalk:** Geographic concordance for panel/change analysis
-- **Change analysis:** Δ income, Δ race, Δ education over 1990-2000
+- **1990→2000 PUMA concordance:** Geographic crosswalk for panel/change analysis (PUMAs redefined between decades)
+- **Panel/change analysis:** Δ income, Δ race, Δ education, Δ school exposure over 1990-2000
 - **Urban/rural classification:** Metropolitan vs. non-metropolitan PUMA categorization
-- **Multivariate regressions:** Full model with multiple demographic controls
-- **School quality measures:** Enrollment size, tuition, academic performance
-- **Spatial analysis:** Spatial autocorrelation, local clustering (Moran's I)
+- **School quality measures:** Enrollment size, tuition, academic performance, teacher credentials
+- **Advanced spatial analysis:** Spatial autocorrelation, local clustering (Moran's I), spatial lag models
+- **Causal inference:** Instrumental variables, difference-in-differences, matching estimators
 
 **Potential Extensions:**
 
-1. **Panel Analysis:** Add 1990 data and examine changes in demographics and school access
-2. **Heterogeneity:** Separate analysis by urban/rural or by county
-3. **Interaction Models:** `reg total_school c.avg_income##c.black_share`
-4. **School Type Details:** Separate analysis by denomination (Catholic, other Christian, non-sectarian)
-5. **Distance Sensitivity:** Compare results across 1-mile, 3-mile, 5-mile, 10-mile buffers
-6. **Population Weighting:** Weight regressions by PUMA population
+1. **Panel Analysis:** Create PUMA concordance file to link 1990→2000 and examine demographic/school access changes
+2. **Heterogeneity Analysis:**
+   - Urban/rural stratification
+   - County-level analysis
+   - Regional comparisons (South FL vs. Central FL vs. Panhandle)
+3. **Interaction Models:**
+   - `reg total_school c.avg_income##c.black_share`
+   - Race × income interactions
+   - Education × income interactions
+4. **School Type Details:**
+   - Denomination-specific analysis (Catholic, Evangelical, Jewish, etc.)
+   - Religious diversity indices
+   - School level × type interactions
+5. **Methodological Extensions:**
+   - Population-weighted regressions
+   - Robust/clustered standard errors
+   - Quantile regression
+   - Spatial econometric models
+6. **Additional Outcomes:**
+   - School enrollment trends
+   - Tuition levels by demographic composition
+   - School entry/exit dynamics
 
 ## Contact
 
@@ -964,6 +1162,7 @@ If using this analysis, cite:
 | Date | Update |
 |------|--------|
 | 2025-12-01 | Initial CLAUDE.md creation with comprehensive codebase documentation |
+| 2025-12-11 | Major update: Added 1990 analysis workflow, school count construction (school_counts.do), spatial visualization (maps.do), master run script (run.do), and updated all documentation to reflect expanded codebase (~1,350 lines across 9 .do files) |
 
 ---
 
