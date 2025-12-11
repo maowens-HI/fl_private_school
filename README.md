@@ -11,7 +11,7 @@ The workflow processes raw school location data to create block-level exposure m
 - **IPUMS Census microdata** (5% sample, Florida only): Individual and household-level demographic data for 1990 and 2000
 - **Private school locations** (florida_privates_lat_lon.dta): Geocoded private school locations with type classifications and grade levels
 - **Census block centroids** (fl_blocks2000_centroids.dta): Block-level geographic coordinates for distance calculations
-- **PUMA × Block crosswalks**:
+- **PUMA × Block crosswalks**: These were created using the Missouri Census Data Ceter "Geocorr 2000: Geographic Correspondence Engine".
   - `geocorr2000_pxb2.csv`: 2000 PUMA boundaries
   - `geocorr1990.csv`: 1990 PUMA boundaries
 
@@ -32,7 +32,7 @@ Processes raw school location data to create school counts within distance buffe
 2. Loads geocoded private school locations with type and grade-level classifications
 3. Uses `geonear` package to count schools within 1-10 mile buffers of each block centroid
 4. Separates analysis by school level (elementary, middle, high school)
-5. Calculates school type diversity metrics using both fine-grained and collapsed classifications
+5. Calculates school type metrics using both fine-grained and collapsed classifications
 
 **School type classifications:**
 - Fine-grained: Original detailed type categories
@@ -82,8 +82,8 @@ Both scripts link block-level school counts to PUMA geographies:
 - `total_school`: Total private schools within buffer
 - `relig`: Religious private schools
 - `non_relig`: Non-religious private schools
-- `distinct_fine`: School type diversity (fine classification)
-- `distinct_collapsed`: School type diversity (collapsed classification)
+- `distinct_fine`: School type (fine classification)
+- `distinct_collapsed`: School type (collapsed classification)
 - `distance`: Distance buffer radius (1-10 miles)
 
 **Outputs:**
@@ -103,7 +103,6 @@ Both scripts analyze relationships between demographics and private school expos
 2. Generate summary statistics for all variables
 3. Run bivariate regressions: each demographic variable regressed on each school exposure measure
 4. Include multivariate specification with demographic controls
-5. Export results as LaTeX tables
 
 **Outputs (2000):**
 - `summary_stats.doc`
@@ -144,7 +143,4 @@ This project performs **cross-sectional analyses** for both 1990 and 2000, exami
 
 **Not yet implemented:**
 - Panel/change analysis linking 1990→2000 (requires PUMA concordance across decades)
-- Time-series analysis of demographic and school access changes
 - Urban/rural classification
-- Spatial econometric models (e.g., spatial lag, spatial error)
-- School quality measures (enrollment, tuition, academic performance)
