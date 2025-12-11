@@ -1,9 +1,27 @@
 /****************************************************************************************
 * MASTER SCRIPT: run.do
-* PROJECT: 
+* PROJECT: Florida Private School Exposure Analysis
 * AUTHOR: Myles Owens
+* INSTITUTION: Hoover Institution, Stanford University
 * PURPOSE:
 *   - Run entire workflow from raw data → cleaned panels → analysis → outputs
+*   - Processes both 1990 and 2000 Census data
+*   - Creates block-level school exposure measures
+*   - Links schools to PUMA demographics
+*   - Performs statistical analysis and optional spatial visualization
+*
+* WORKFLOW:
+*   Phase 0: School count data construction (school_counts.do) - COMMENTED OUT
+*   Phase I: PUMA demographics (fl_demo_reg_1990.do, fl_demo_reg.do)
+*   Phase II: School-PUMA linkage (blockxpuma_1990.do, blockxpuma.do)
+*   Phase III: Statistical analysis (puma_school_analysis_1990.do, puma_school_analysis.do)
+*   Phase IV: Spatial visualization (maps.do) - COMMENTED OUT
+*
+* NOTE: Phases 0 and IV are commented out by default because they are:
+*       - Computationally intensive
+*       - Only need to be run once (Phase 0)
+*       - Generate many large output files (Phase IV)
+*       Uncomment if needed.
 ****************************************************************************************/
 
 * --- 0. Define project root ---
@@ -31,16 +49,38 @@ local logfile "`ProjectDir'/logs/`logdate'.log.txt"
 log using "`logfile'", text
 
 
-* --- 2. Build datasets -------------------------------------------------------------------
+* --- 2. Build school count data (Phase 0) -----------------------------------------------
+* NOTE: This step is computationally intensive and only needs to be run once
+* Comment out if block_school_counts_all*.dta files already exist
+* do "`ProjectDir'/code/school_counts.do"
+
+
+* --- 3. Build PUMA demographics (Phase I) ------------------------------------------------
+* Process IPUMS microdata for both 1990 and 2000
+do "`ProjectDir'/code/fl_demo_reg_1990.do"
 do "`ProjectDir'/code/fl_demo_reg.do"
+
+
+* --- 4. Link schools to PUMAs (Phase II) -------------------------------------------------
+* Aggregate block-level school counts to PUMA geography for both years
+do "`ProjectDir'/code/blockxpuma_1990.do"
 do "`ProjectDir'/code/blockxpuma.do"
 
 
-* --- 3. Analysis -------------------------------------------------------------------------
+* --- 5. Statistical analysis (Phase III) -------------------------------------------------
+* Run bivariate and multivariate regressions for both years
+do "`ProjectDir'/code/puma_school_analysis_1990.do"
 do "`ProjectDir'/code/puma_school_analysis.do"
 
 
-* --- 5. Wrap up --------------------------------------------------------------------------
+* --- 6. Spatial visualization (Phase IV - Optional) --------------------------------------
+* Create choropleth maps of school exposure patterns
+* NOTE: This step is time-consuming and creates many output files
+* Comment out if you don't need spatial visualizations
+* do "`ProjectDir'/code/maps.do"
+
+
+* --- 7. Wrap up --------------------------------------------------------------------------
 local datetime2 = clock("$S_DATE $S_TIME", "DMYhms")
 di "Runtime (hours): " %-12.2fc (`datetime2' - `datetime1')/(1000*60*60)
 log close
