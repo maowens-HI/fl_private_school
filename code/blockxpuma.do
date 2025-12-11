@@ -67,11 +67,17 @@ drop in 1  // Drop first data row if it contains formatting info
 * Florida counties range from 12001 to 12139
 keep if county >= 12001 & county <= 12999
 
-* Convert county and block to numeric; keep tract as STRING (contains decimals)
-destring county block, replace force
+* Convert county to numeric; keep tract and block as STRING
+* IMPORTANT: Block can contain letters (e.g., 222A, 301B) so must stay as string!
+destring county, replace force
 
-* Drop observations with missing blocks (data quality issue)
-drop if missing(block)
+* Process block field - keep as string, handle alphanumeric codes
+tostring block, replace force
+replace block = upper(block)  // Ensure uppercase for consistency
+replace block = strtrim(block)  // Remove any whitespace
+
+* Drop observations with missing or empty blocks
+drop if missing(block) | block == "" | block == "."
 
 * Parse tract into whole and fractional parts
 * Some tracts are like "9841.01" (need to split), others are "9841" (no decimal)
@@ -90,8 +96,12 @@ gen str tract_frac2  = cond(missing(tract_frac), "00", string(real(tract_frac), 
 * Combine into 6-character tract code
 gen str tract6 = tract_whole4 + tract_frac2
 
-* Create 4-character padded block code
-gen str block4 = string(block, "%04.0f")
+* Create 4-character padded block code (handles both numeric and alphanumeric)
+* Pad with leading zeros to 4 characters (e.g., "101" -> "0101", "222A" -> "222A")
+gen str block4 = block
+replace block4 = "0" + block if length(block) == 3
+replace block4 = "00" + block if length(block) == 2
+replace block4 = "000" + block if length(block) == 1
 
 * Construct 15-character baseid: county (5) + tract (6) + block (4)
 gen str baseid = string(county, "%05.0f") + tract6 + block4
