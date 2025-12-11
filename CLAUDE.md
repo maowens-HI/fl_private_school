@@ -815,7 +815,11 @@ summarize varlist, detail
   - `fl_blocks1990_centroids.dta` (1990 Census blocks)
     - Block-level geographic coordinates for year 1990
     - Variables: `STFID` (baseid), `INTPTLAT90`, `INTPTLON90`, `_ID`
-    - Created from cenblk1990 shapefile using `spshape2dta`
+    - Created from cenblk1990_wgs84 shapefile using `spshape2dta`
+    - **CRITICAL:** Original cenblk1990.shp from FGDL is in Albers Equal Area projection (EPSG custom, meters), NOT lat/lon
+    - **Must reproject** to EPSG:4269 (NAD83 geographic) before use with `geonear`
+    - Use QGIS: Export → Save Features As → CRS: EPSG:4269 → Save as `cenblk1990_wgs84.shp`
+    - Coordinates in projected system (~562,000, ~629,000) vs. geographic (~-80 to -87, ~25 to 31)
   - **Important:** Block boundaries differ between 1990 and 2000, so separate files are required for temporal accuracy
 
 - **Geographic Crosswalks:**

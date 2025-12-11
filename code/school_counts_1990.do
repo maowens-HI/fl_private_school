@@ -62,7 +62,10 @@ cd "$florida\data"
 * Data prep
 * Create dta files from .shp and .dbf for 1990 Census blocks
 * Source: Florida Geographic Data Library (FGDL) - https://fgdl.org/
-spshape2dta cenblk1990, replace saving(flo_1990)
+* NOTE: Original cenblk1990.shp is in Albers Equal Area projection (meters)
+* Must use reprojected version with geographic coordinates (NAD83, EPSG:4269)
+* Use QGIS to reproject: Export as EPSG:4269 to create cenblk1990_wgs84.shp
+spshape2dta cenblk1990_wgs84, replace saving(flo_1990)
 
 
 * Load attribute table
