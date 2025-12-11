@@ -58,7 +58,7 @@ Notes:
 clear
 set more off
 cd "$florida\data"
-/*
+
 * Data prep
 * Create dta files from .shp and .dbf for 1990 Census blocks
 * Source: Florida Geographic Data Library (FGDL) - https://fgdl.org/
@@ -71,12 +71,20 @@ use flo_1990.dta, clear
 * Check the fields
 describe
 
+* Check coordinate values to determine if they're lat/lon or projected
+summarize _CX _CY
+
+* If _CY is between 25-31 and _CX is between -87 to -80, they are lat/lon
+* Otherwise, they are in a projected coordinate system and need conversion
+* For FGDL 1990 data, _CX and _CY are typically the centroid coordinates
+* Rename _CY to INTPTLAT90 and _CX to INTPTLON90
+rename (_CY _CX) (INTPTLAT90 INTPTLON90)
+
 * Keep only what you need
 keep STFID INTPTLAT90 INTPTLON90 _ID
 rename (INTPTLAT90 INTPTLON90) (lat lon)
 
 save fl_blocks1990_centroids.dta, replace
-*/
 
 *need geonear package
 
