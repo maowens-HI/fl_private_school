@@ -11,7 +11,9 @@
 *   - Performs statistical analysis and optional spatial visualization
 *
 * WORKFLOW:
-*   Phase 0: School count data construction (school_counts.do) - COMMENTED OUT
+*   Phase 0: School count data construction - COMMENTED OUT
+*            (school_counts_1990.do - builds 1990 block-level school exposure)
+*            (school_counts.do - builds 2000 block-level school exposure)
 *   Phase I: PUMA demographics (fl_demo_reg_1990.do, fl_demo_reg.do)
 *   Phase II: School-PUMA linkage (blockxpuma_1990.do, blockxpuma.do)
 *   Phase III: Statistical analysis (puma_school_analysis_1990.do, puma_school_analysis.do)
@@ -51,8 +53,11 @@ log using "`logfile'", text
 
 * --- 2. Build school count data (Phase 0) -----------------------------------------------
 * NOTE: This step is computationally intensive and only needs to be run once
-* Comment out if block_school_counts_all*.dta files already exist
-* do "`ProjectDir'/code/school_counts.do"
+* These scripts use FGDL Census block centroids to calculate distance-based school exposure
+* Uncomment if you need to rebuild the block-level school count files
+* IMPORTANT: Use separate block boundaries for 1990 vs 2000 for temporal accuracy
+* do "`ProjectDir'/code/school_counts_1990.do"  // 1990 Census blocks → *_1990.dta files
+* do "`ProjectDir'/code/school_counts.do"       // 2000 Census blocks → *.dta files
 
 
 * --- 3. Build PUMA demographics (Phase I) ------------------------------------------------
