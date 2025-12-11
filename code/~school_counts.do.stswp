@@ -50,7 +50,7 @@ Notes:
 clear 
 set more off
 cd "$florida\data"
-/*
+
 * Data prep
 *Create dta files from .shp and .dbf
 spshape2dta cenblk2000_may09, replace saving(flo)
@@ -67,7 +67,7 @@ keep STFID INTPTLAT00 INTPTLON00 _ID
 rename (INTPTLAT00 INTPTLON00) (lat lon)
 
 save fl_blocks2000_centroids.dta, replace
-*/
+
 
 *need geonear package
 
