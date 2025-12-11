@@ -16,7 +16,7 @@ Description:
 
 Inputs:
     - geocorr1990.csv                Geographic crosswalk (1990 PUMA × Block)
-    - block_school_counts_all.dta    Block-level private school counts
+    - block_school_counts_all_1990.dta    Block-level private school counts (1990 blocks)
     - fl_puma1990_analysis.dta       PUMA-level demographic characteristics (1990)
 
 Outputs:
@@ -121,7 +121,8 @@ rename block block_id
 * Many-to-many because:
 *   - One block can map to multiple PUMAs (rare but possible at boundaries)
 *   - One block has multiple distance buffers (1, 3, 5, 10 miles)
-merge m:m baseid using block_school_counts_all
+* IMPORTANT: Use 1990 block counts (based on 1990 Census block boundaries)
+merge m:m baseid using block_school_counts_all_1990
 
 * Check merge results
 tab _merge

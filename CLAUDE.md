@@ -100,8 +100,10 @@ fl_private_school/
 
 ### Phase 0: School Count Data Construction
 
+**Note:** This phase runs separately for 1990 and 2000, using temporally-appropriate block boundaries from FGDL.
+
 ```
-Census Block Centroids           Private School Locations
+2000 Census Block Centroids      Private School Locations
 (fl_blocks2000_centroids.dta)   (florida_privates_lat_lon.dta)
         │                                  │
         │                                  ├──> Filter by school level
@@ -112,7 +114,7 @@ Census Block Centroids           Private School Locations
         │                                  │    • Collapsed (10 categories)
         │                                  │
         v                                  v
-    school_counts.do
+    school_counts.do (2000 blocks)
         │
         ├──> For each distance buffer (1-10 miles):
         │    • Use geonear to find schools within radius
@@ -126,7 +128,23 @@ Census Block Centroids           Private School Locations
         └──> Combine all levels
              │
              v
-        block_school_counts_all.dta
+        block_school_counts_all.dta (2000 blocks)
+
+1990 Census Block Centroids      Private School Locations
+(fl_blocks1990_centroids.dta)   (florida_privates_lat_lon.dta)
+        │                                  │
+        v                                  v
+    school_counts_1990.do (1990 blocks)
+        │
+        ├──> [Same distance buffer calculations as above]
+        │
+        v
+    block_school_counts_all_[elem/middle/high]_1990.dta
+        │
+        └──> Combine all levels
+             │
+             v
+        block_school_counts_all_1990.dta (1990 blocks)
 ```
 
 **Key Operations:**
@@ -703,10 +721,10 @@ summarize varlist, detail
 
 ### Must Run in Order (if running manually)
 
-**Phase 0: School Count Data Construction**
-0. `school_counts.do` - Constructs block-level school exposure measures
+**Phase 0: School Count Data Construction (parallel for 1990 & 2000)**
+0a. `school_counts.do` - Constructs 2000 block-level school exposure measures
    - **Inputs:**
-     - `fl_blocks2000_centroids.dta` (block centroids with lat/lon)
+     - `fl_blocks2000_centroids.dta` (2000 block centroids with lat/lon)
      - `florida_privates_lat_lon.dta` (geocoded schools)
    - **Outputs:**
      - `block_school_counts_all_elem.dta`
@@ -714,6 +732,18 @@ summarize varlist, detail
      - `block_school_counts_all_high.dta`
      - `block_school_counts_all.dta` (combined)
    - **Requires:** `geonear` package, `spshape2dta` for spatial data
+
+0b. `school_counts_1990.do` - Constructs 1990 block-level school exposure measures
+   - **Inputs:**
+     - `fl_blocks1990_centroids.dta` (1990 block centroids with lat/lon)
+     - `florida_privates_lat_lon.dta` (geocoded schools)
+   - **Outputs:**
+     - `block_school_counts_all_elem_1990.dta`
+     - `block_school_counts_all_middle_1990.dta`
+     - `block_school_counts_all_high_1990.dta`
+     - `block_school_counts_all_1990.dta` (combined)
+   - **Requires:** `geonear` package, `spshape2dta` for spatial data
+   - **Note:** Uses 1990 block boundaries for temporal accuracy
 
 **Phase I: Demographics (parallel for 1990 & 2000)**
 1a. `fl_demo_reg.do` - Year 2000 PUMA demographics
@@ -738,7 +768,7 @@ summarize varlist, detail
 2b. `blockxpuma_1990.do` - Year 1990 linkage
    - **Inputs:**
      - `geocorr1990.csv` (1990 crosswalk)
-     - `block_school_counts_all.dta` (from Phase 0)
+     - `block_school_counts_all_1990.dta` (from Phase 0b)
      - `fl_puma1990_analysis.dta` (from Phase Ib)
    - **Outputs:**
      - `blockxpuma_clean_1990.dta`
@@ -776,10 +806,17 @@ summarize varlist, detail
   - Geocoded private school locations with lat/lon coordinates
   - Variables: `priv_g_lat`, `priv_g_lon`, `type`, `elem`, `middle`, `high`
 
-- **Census Block Centroids:** `fl_blocks2000_centroids.dta`
-  - Block-level geographic coordinates
-  - Variables: `STFID` (baseid), `INTPTLAT00`, `INTPTLON00`, `_ID`
-  - Can be created from Census TIGER/Line shapefiles using `spshape2dta`
+- **Census Block Centroids:**
+  - **Source:** Florida Geographic Data Library (FGDL) - https://fgdl.org/
+  - `fl_blocks2000_centroids.dta` (2000 Census blocks)
+    - Block-level geographic coordinates for year 2000
+    - Variables: `STFID` (baseid), `INTPTLAT00`, `INTPTLON00`, `_ID`
+    - Created from cenblk2000 shapefile using `spshape2dta`
+  - `fl_blocks1990_centroids.dta` (1990 Census blocks)
+    - Block-level geographic coordinates for year 1990
+    - Variables: `STFID` (baseid), `INTPTLAT90`, `INTPTLON90`, `_ID`
+    - Created from cenblk1990 shapefile using `spshape2dta`
+  - **Important:** Block boundaries differ between 1990 and 2000, so separate files are required for temporal accuracy
 
 - **Geographic Crosswalks:**
   - `geocorr2000_pxb2.csv`: 2000 PUMA × Block crosswalk

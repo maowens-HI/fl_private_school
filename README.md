@@ -10,8 +10,12 @@ The workflow processes raw school location data to create block-level exposure m
 
 - **IPUMS Census microdata** (5% sample, Florida only): Individual and household-level demographic data for 1990 and 2000
 - **Private school locations** (florida_privates_lat_lon.dta): Geocoded private school locations with type classifications and grade levels
-- **Census block centroids** (fl_blocks2000_centroids.dta): Block-level geographic coordinates for distance calculations
-- **PUMA × Block crosswalks**: These were created using the Missouri Census Data Ceter "Geocorr 2000: Geographic Correspondence Engine".
+- **Census block centroids**: Block-level geographic coordinates for distance calculations
+  - Source: **Florida Geographic Data Library (FGDL)** - https://fgdl.org/
+  - `fl_blocks2000_centroids.dta`: 2000 Census block boundaries (from cenblk2000 shapefile)
+  - `fl_blocks1990_centroids.dta`: 1990 Census block boundaries (from cenblk1990 shapefile)
+  - **Important:** Separate files required because block boundaries changed between 1990 and 2000
+- **PUMA × Block crosswalks**: These were created using the Missouri Census Data Center "Geocorr 2000: Geographic Correspondence Engine".
   - `geocorr2000_pxb2.csv`: 2000 PUMA boundaries
   - `geocorr1990.csv`: 1990 PUMA boundaries
 
@@ -21,14 +25,16 @@ The workflow processes raw school location data to create block-level exposure m
 
 **`run.do`** - Executes the complete workflow from raw data to final analysis. Sets global paths, runs all component scripts in sequence, and logs timing information.
 
-### Phase 0: School Count Data Construction
+### Phase 0: School Count Data Construction (1990 & 2000)
 
-**`school_counts.do`** - Constructs block-level private school exposure measures
+**`school_counts.do`** - Constructs 2000 block-level private school exposure measures
 
-Processes raw school location data to create school counts within distance buffers for each Census block:
+**`school_counts_1990.do`** - Constructs 1990 block-level private school exposure measures
+
+Both scripts process raw school location data to create school counts within distance buffers for each Census block, using temporally-appropriate block boundaries:
 
 **Steps:**
-1. Loads Census block centroids with lat/lon coordinates
+1. Loads Census block centroids with lat/lon coordinates (1990 or 2000 boundaries from FGDL)
 2. Loads geocoded private school locations with type and grade-level classifications
 3. Uses `geonear` package to count schools within 1-10 mile buffers of each block centroid
 4. Separates analysis by school level (elementary, middle, high school)
@@ -38,11 +44,17 @@ Processes raw school location data to create school counts within distance buffe
 - Fine-grained: Original detailed type categories
 - Collapsed: 10 aggregated categories (Non-religious, Evangelical, Catholic, Baptist, Mainline Protestant, Adventist, Jewish, Muslim, Other Christian, Other Religion)
 
-**Outputs:**
+**Outputs (2000):**
 - `block_school_counts_all_elem.dta`: Elementary school counts by block × distance
 - `block_school_counts_all_middle.dta`: Middle school counts by block × distance
 - `block_school_counts_all_high.dta`: High school counts by block × distance
 - `block_school_counts_all.dta`: Combined file with all levels
+
+**Outputs (1990):**
+- `block_school_counts_all_elem_1990.dta`
+- `block_school_counts_all_middle_1990.dta`
+- `block_school_counts_all_high_1990.dta`
+- `block_school_counts_all_1990.dta`
 
 ### Phase I: PUMA Demographics Construction (1990 & 2000)
 
