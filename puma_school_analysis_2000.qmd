@@ -1,0 +1,334 @@
+---
+title: "Florida Private School Access and Demographics: 2000 Analysis"
+pagetitle: "2000 PUMA School Analysis | FL Private School Research"
+date: "December 12, 2025"
+author: "Myles Owens"
+affiliation: "Hoover Institution, Stanford University"
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    code-fold: true
+    theme: cosmo
+---
+
+## Analysis Overview
+
+This document presents cross-sectional analysis of the relationship between Florida community demographics and private school access for the year 2000. The analysis examines PUMA-level demographic characteristics (income, race, ethnicity, education) and their association with private school exposure measures within a 5-mile radius.
+
+**Key Features:**
+
+- **Geographic Unit:** Public Use Microdata Areas (PUMAs)
+- **Distance Buffer:** 5-mile radius (primary specification)
+- **School Levels:** Elementary, middle, and high school combined
+- **Time Period:** Year 2000 Census cross-section
+
+::: {.callout-note}
+## Methodology Note
+School exposure measures are constructed at the Census block level using geocoded school coordinates, then aggregated to PUMA geography. Demographic measures come from IPUMS 2000 Census 5% sample.
+:::
+
+------------------------------------------------------------------------
+
+## Summary Statistics
+
+### Demographic and School Exposure Variables
+
+```stata
+[PLACEHOLDER: Summary statistics table]
+
+Variable            |    Obs     Mean      Std.Dev.    Min       Max
+--------------------+------------------------------------------------
+avg_income          |    XXX    XXXXX.XX   XXXXX.XX   XXXXX.XX  XXXXX.XX
+black_share         |    XXX    XX.XX      XX.XX      X.XX      XX.XX
+white_share         |    XXX    XX.XX      XX.XX      XX.XX     XX.XX
+hisp_share          |    XXX    XX.XX      XX.XX      X.XX      XX.XX
+less_hs             |    XXX    XX.XX      XX.XX      X.XX      XX.XX
+hs_grad             |    XXX    XX.XX      XX.XX      X.XX      XX.XX
+some_college        |    XXX    XX.XX      XX.XX      X.XX      XX.XX
+college_plus        |    XXX    XX.XX      XX.XX      X.XX      XX.XX
+avg_age             |    XXX    XX.XX      X.XX       XX.XX     XX.XX
+total_school        |    XXX    XX.XX      XX.XX      X.XX      XXX.XX
+relig               |    XXX    XX.XX      XX.XX      X.XX      XXX.XX
+non_relig           |    XXX    XX.XX      XX.XX      X.XX      XX.XX
+distinct_fine       |    XXX    X.XX       X.XX       X.XX      XX.XX
+distinct_collapsed  |    XXX    X.XX       X.XX       X.XX      X.XX
+```
+
+::: {.callout-tip}
+## Variable Definitions
+- **avg_income:** Average household income in 2000 dollars
+- **[race]_share:** Percentage of population by race/ethnicity
+- **total_school:** Total private schools within 5-mile buffer
+- **relig/non_relig:** Religious vs. non-religious school counts
+- **distinct_fine:** School type diversity (granular classification)
+- **distinct_collapsed:** School type diversity (10-category classification)
+:::
+
+------------------------------------------------------------------------
+
+## Bivariate Regression Results
+
+These tables present simple bivariate relationships between each school exposure measure and community demographic characteristics. Each cell represents a separate regression: Demographic Variable ~ School Exposure Measure.
+
+### Table 1: Total Private School Count
+
+```stata
+[PLACEHOLDER: Regression table for total_school]
+
+                          |   (1)          (2)          (3)          (4)          (5)          (6)          (7)          (8)
+                          | avg_income  black_share  white_share  hisp_share   less_hs     hs_grad   some_college college_plus
+--------------------------+-------------------------------------------------------------------------------------------
+total_school              |   XXX.XX**    -X.XX***     X.XX***     -X.XX**     -X.XX***    X.XX**      X.XX         X.XX***
+                          |  (XX.XX)      (X.XX)      (X.XX)      (X.XX)      (X.XX)      (X.XX)     (X.XX)       (X.XX)
+                          |
+Constant                  |  XXXXX.XX***  XX.XX***    XX.XX***    XX.XX***    XX.XX***   XX.XX***    XX.XX***     XX.XX***
+                          | (XXXX.XX)     (X.XX)      (X.XX)      (X.XX)      (X.XX)     (X.XX)      (X.XX)       (X.XX)
+--------------------------+-------------------------------------------------------------------------------------------
+Observations              |    XXX         XXX         XXX         XXX         XXX         XXX         XXX          XXX
+R-squared                 |   0.XXX       0.XXX       0.XXX       0.XXX       0.XXX       0.XXX       0.XXX        0.XXX
+--------------------------+-------------------------------------------------------------------------------------------
+Standard errors in parentheses
+*** p<0.01, ** p<0.05, * p<0.1
+```
+
+::: {.callout-note}
+## Interpretation
+Positive coefficients indicate that areas with more private schools have higher levels of that demographic characteristic. For example, if the coefficient on avg_income is positive and significant, wealthier PUMAs have greater private school access.
+:::
+
+------------------------------------------------------------------------
+
+### Table 2: Religious Private Schools
+
+```stata
+[PLACEHOLDER: Regression table for relig]
+
+                          |   (1)          (2)          (3)          (4)          (5)          (6)          (7)          (8)
+                          | avg_income  black_share  white_share  hisp_share   less_hs     hs_grad   some_college college_plus
+--------------------------+-------------------------------------------------------------------------------------------
+relig                     |   XXX.XX**    -X.XX***     X.XX***     -X.XX**     -X.XX***    X.XX**      X.XX         X.XX***
+                          |  (XX.XX)      (X.XX)      (X.XX)      (X.XX)      (X.XX)      (X.XX)     (X.XX)       (X.XX)
+                          |
+Constant                  |  XXXXX.XX***  XX.XX***    XX.XX***    XX.XX***    XX.XX***   XX.XX***    XX.XX***     XX.XX***
+                          | (XXXX.XX)     (X.XX)      (X.XX)      (X.XX)      (X.XX)     (X.XX)      (X.XX)       (X.XX)
+--------------------------+-------------------------------------------------------------------------------------------
+Observations              |    XXX         XXX         XXX         XXX         XXX         XXX         XXX          XXX
+R-squared                 |   0.XXX       0.XXX       0.XXX       0.XXX       0.XXX       0.XXX       0.XXX        0.XXX
+--------------------------+-------------------------------------------------------------------------------------------
+Standard errors in parentheses
+*** p<0.01, ** p<0.05, * p<0.1
+```
+
+------------------------------------------------------------------------
+
+### Table 3: Non-Religious Private Schools
+
+```stata
+[PLACEHOLDER: Regression table for non_relig]
+
+                          |   (1)          (2)          (3)          (4)          (5)          (6)          (7)          (8)
+                          | avg_income  black_share  white_share  hisp_share   less_hs     hs_grad   some_college college_plus
+--------------------------+-------------------------------------------------------------------------------------------
+non_relig                 |   XXX.XX**    -X.XX***     X.XX***     -X.XX**     -X.XX***    X.XX**      X.XX         X.XX***
+                          |  (XX.XX)      (X.XX)      (X.XX)      (X.XX)      (X.XX)      (X.XX)     (X.XX)       (X.XX)
+                          |
+Constant                  |  XXXXX.XX***  XX.XX***    XX.XX***    XX.XX***    XX.XX***   XX.XX***    XX.XX***     XX.XX***
+                          | (XXXX.XX)     (X.XX)      (X.XX)      (X.XX)      (X.XX)     (X.XX)      (X.XX)       (X.XX)
+--------------------------+-------------------------------------------------------------------------------------------
+Observations              |    XXX         XXX         XXX         XXX         XXX         XXX         XXX          XXX
+R-squared                 |   0.XXX       0.XXX       0.XXX       0.XXX       0.XXX       0.XXX       0.XXX        0.XXX
+--------------------------+-------------------------------------------------------------------------------------------
+Standard errors in parentheses
+*** p<0.01, ** p<0.05, * p<0.1
+```
+
+::: {.callout-important}
+## Religious vs. Non-Religious Schools
+Compare coefficients between Tables 2 and 3 to identify whether religious and non-religious schools show different demographic sorting patterns. Non-religious schools may be more strongly associated with income, while religious schools may show different racial/ethnic patterns.
+:::
+
+------------------------------------------------------------------------
+
+### Table 4: School Type Diversity (Fine Classification)
+
+```stata
+[PLACEHOLDER: Regression table for distinct_fine]
+
+                          |   (1)          (2)          (3)          (4)          (5)          (6)          (7)          (8)
+                          | avg_income  black_share  white_share  hisp_share   less_hs     hs_grad   some_college college_plus
+--------------------------+-------------------------------------------------------------------------------------------
+distinct_fine             |   XXX.XX**    -X.XX***     X.XX***     -X.XX**     -X.XX***    X.XX**      X.XX         X.XX***
+                          |  (XX.XX)      (X.XX)      (X.XX)      (X.XX)      (X.XX)      (X.XX)     (X.XX)       (X.XX)
+                          |
+Constant                  |  XXXXX.XX***  XX.XX***    XX.XX***    XX.XX***    XX.XX***   XX.XX***    XX.XX***     XX.XX***
+                          | (XXXX.XX)     (X.XX)      (X.XX)      (X.XX)      (X.XX)     (X.XX)      (X.XX)       (X.XX)
+--------------------------+-------------------------------------------------------------------------------------------
+Observations              |    XXX         XXX         XXX         XXX         XXX         XXX         XXX          XXX
+R-squared                 |   0.XXX       0.XXX       0.XXX       0.XXX       0.XXX       0.XXX       0.XXX        0.XXX
+--------------------------+-------------------------------------------------------------------------------------------
+Standard errors in parentheses
+*** p<0.01, ** p<0.05, * p<0.1
+```
+
+::: {.callout-tip}
+## Diversity Measures
+**distinct_fine** counts unique school types using granular denomination categories (Catholic, Lutheran, Methodist, Presbyterian, Episcopal, Baptist, etc. as separate types). Higher values indicate greater variety of school options available to families.
+:::
+
+------------------------------------------------------------------------
+
+### Table 5: School Type Diversity (Collapsed Classification)
+
+```stata
+[PLACEHOLDER: Regression table for distinct_collapsed]
+
+                          |   (1)          (2)          (3)          (4)          (5)          (6)          (7)          (8)
+                          | avg_income  black_share  white_share  hisp_share   less_hs     hs_grad   some_college college_plus
+--------------------------+-------------------------------------------------------------------------------------------
+distinct_collapsed        |   XXX.XX**    -X.XX***     X.XX***     -X.XX**     -X.XX***    X.XX**      X.XX         X.XX***
+                          |  (XX.XX)      (X.XX)      (X.XX)      (X.XX)      (X.XX)      (X.XX)     (X.XX)       (X.XX)
+                          |
+Constant                  |  XXXXX.XX***  XX.XX***    XX.XX***    XX.XX***    XX.XX***   XX.XX***    XX.XX***     XX.XX***
+                          | (XXXX.XX)     (X.XX)      (X.XX)      (X.XX)      (X.XX)     (X.XX)      (X.XX)       (X.XX)
+--------------------------+-------------------------------------------------------------------------------------------
+Observations              |    XXX         XXX         XXX         XXX         XXX         XXX         XXX          XXX
+R-squared                 |   0.XXX       0.XXX       0.XXX       0.XXX       0.XXX       0.XXX       0.XXX        0.XXX
+--------------------------+-------------------------------------------------------------------------------------------
+Standard errors in parentheses
+*** p<0.01, ** p<0.05, * p<0.1
+```
+
+::: {.callout-tip}
+## Diversity Measures
+**distinct_collapsed** uses 10 broad categories: Non-religious, Evangelical, Catholic, Baptist, Mainline Protestant, Adventist, Jewish, Muslim, Other Christian, Other Religion. This aggregated measure may be more stable than distinct_fine for areas with fewer schools.
+:::
+
+------------------------------------------------------------------------
+
+## Multivariate Regression Analysis
+
+### Table 6: Average Income Predicted by School Access and Demographics
+
+This multivariate specification examines the relationship between total private school count and average income, controlling for other demographic characteristics.
+
+```stata
+[PLACEHOLDER: Multivariate regression table]
+
+                          |   (1)
+                          | avg_income
+--------------------------+------------------
+total_school              |   XXX.XX**
+                          |  (XX.XX)
+                          |
+black_share               |   -XXX.XX***
+                          |  (XX.XX)
+                          |
+hisp_share                |   -XXX.XX***
+                          |  (XX.XX)
+                          |
+avg_age                   |   XXX.XX*
+                          |  (XX.XX)
+                          |
+college_plus              |   XXX.XX***
+                          |  (XX.XX)
+                          |
+Constant                  |  XXXXX.XX***
+                          | (XXXX.XX)
+--------------------------+------------------
+Observations              |    XXX
+R-squared                 |   0.XXX
+Adjusted R-squared        |   0.XXX
+--------------------------+------------------
+Standard errors in parentheses
+*** p<0.01, ** p<0.05, * p<0.1
+```
+
+::: {.callout-note}
+## Interpretation Guide
+This regression answers: **"After controlling for race, ethnicity, age, and education, do areas with more private schools have higher incomes?"**
+
+- **Positive total_school coefficient:** Suggests private school access is associated with wealth, even accounting for other demographics
+- **Compare to bivariate results:** If the coefficient is attenuated (smaller), it suggests some of the bivariate correlation is explained by compositional differences
+:::
+
+------------------------------------------------------------------------
+
+## Key Research Questions
+
+Based on these results, we can address:
+
+1. **Income Sorting:** Are wealthier communities better served by private schools?
+   - See Tables 1-5, Column (1) and Table 6
+
+2. **Racial Segregation:** Do predominantly White areas have more private school options than Black/Hispanic areas?
+   - See Tables 1-5, Columns (2)-(4)
+
+3. **Education Correlation:** Are more educated communities associated with greater school choice?
+   - See Tables 1-5, Columns (5)-(8)
+
+4. **School Type Differences:** Do religious and non-religious schools show different demographic patterns?
+   - Compare Tables 2 vs. 3
+
+5. **Diversity Patterns:** Who has access to diverse school options?
+   - See Tables 4-5 for diversity-specific results
+
+------------------------------------------------------------------------
+
+## Data Sources and Methods
+
+::: {.callout-note collapse="true"}
+## Click to expand: Technical Details
+
+**Demographic Data:**
+- Source: IPUMS USA 2000 Census 5% sample
+- Variables: Income (household-level), race, ethnicity, education, age (person-level)
+- Weights: `hhwt` for household variables, `perwt` for person variables
+- Geography: Public Use Microdata Areas (PUMAs)
+
+**School Data:**
+- Source: Geocoded private school locations
+- Distance Calculation: `geonear` package with 5-mile buffer
+- Geographic Construction: Block-level exposure aggregated to PUMA
+- School Classifications:
+  - Religious vs. Non-religious
+  - Fine-grained: All original denomination categories
+  - Collapsed: 10 broad categories
+
+**Sample Restrictions:**
+- Florida only (`statefip==12`)
+- Year 2000 (`year==2000`)
+- 5% Census sample (`sample==200001`)
+- Distance filter: 5-mile radius (primary specification)
+
+**Crosswalk:**
+- MCDC Geocorr 2000: Links 2000 Census blocks to 2000 PUMAs
+- Block-level school counts averaged within each PUMA
+:::
+
+------------------------------------------------------------------------
+
+## Next Steps
+
+Potential extensions to this analysis:
+
+- **Distance Sensitivity:** Compare results across 1-10 mile buffers
+- **School Level Analysis:** Separate results for elementary, middle, and high schools
+- **1990 Comparison:** Cross-sectional analysis for 1990 Census (already constructed)
+- **Panel Analysis:** Examine demographic and school access changes 1990→2000
+- **Spatial Analysis:** Maps and spatial autocorrelation tests
+- **Urban/Rural Heterogeneity:** Stratified analysis by metropolitan status
+
+------------------------------------------------------------------------
+
+## Contact
+
+**Author:** Myles Owens
+**Institution:** Hoover Institution, Stanford University
+**Email:** myles.owens@stanford.edu
+**GitHub:** [maowens-HI/fl_private_school](https://github.com/maowens-HI/fl_private_school)
+
+------------------------------------------------------------------------
+
+*Document generated: `r Sys.Date()`*
